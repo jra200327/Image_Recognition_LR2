@@ -64,16 +64,19 @@ def get_features(image):
 
     R_mean, G_mean, B_mean = normalize_rgb(R_mean, G_mean, B_mean)
 
+    R_std = R_std / 255
+    G_std = G_std / 255
+    B_std = B_std / 255
+
     return R_mean, G_mean, B_mean, R_std, G_std, B_std
 
 def distance(f1, f2):
     return np.sqrt(sum((a - b) ** 2 for a, b in zip(f1, f2)))
 
-def classify(image, dataset):
+def classify(image, dataset, k=5):
     features = get_features(image)
 
-    best_class = None
-    min_dist = float('inf')
+    distances = []
 
     for item in dataset:
         db_features = (
@@ -82,12 +85,29 @@ def classify(image, dataset):
         )
 
         d = distance(features, db_features)
+        distances.append((d, item["class"]))
 
-        if d < min_dist:
-            min_dist = d
-            best_class = item["class"]
+    # сортируем по расстоянию
+    distances.sort(key=lambda x: x[0])
 
-    return best_class, min_dist
+    # берём k ближайших
+    top_k = distances[:k]
+
+    # голосование
+    votes = {}
+
+    for _, cls in top_k:
+        if cls not in votes:
+            votes[cls] = 0
+        votes[cls] += 1
+
+    # выбираем класс с максимальным числом голосов
+    best_class = max(votes.items(), key=lambda x: x[1])[0]
+
+    # можно также вернуть "уверенность"
+    confidence = votes[best_class] / k
+
+    return best_class, confidence
 
 def visualize(image, predicted_class):
     plt.imshow(image)
@@ -141,10 +161,10 @@ if __name__ == "__main__":
     if test_image_path:
         img = load_image(test_image_path)
 
-        predicted, dist = classify(img, dataset)
+        predicted, confidence = classify(img, dataset, k=5)
 
         print(f"Результат: {predicted}")
-        print(f"Расстояние: {dist:.4f}")
+        print(f"Уверенность: {confidence:.2f}")
 
         visualize(img, predicted)
     else:

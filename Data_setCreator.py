@@ -2,6 +2,7 @@ import os
 import csv
 import numpy as np
 from skimage import io
+import matplotlib.patches as patches
 
 def load_image(path):
     image = io.imread(path)
@@ -38,6 +39,10 @@ def get_features(image):
 
     R_mean, G_mean, B_mean = np.mean(R), np.mean(G), np.mean(B)
     R_std, G_std, B_std = np.std(R), np.std(G), np.std(B)
+
+    R_std = R_std / 255
+    G_std = G_std / 255
+    B_std = B_std / 255
 
     # нормализация среднего
     R_mean, G_mean, B_mean = normalize_rgb(R_mean, G_mean, B_mean)
